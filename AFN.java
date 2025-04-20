@@ -23,19 +23,16 @@ public class AFN{
     private String direccionAFD;
     private int cantidadEstadosAFD;
     private List<Integer> estadosFinalAFD;
-    private Map<Integer, List<List<Integer>>> transicionesEstadosAFD;
-
+   
     int cantidadFilasMatrizAFD;
     ArrayList<TransicionAFD>[] transicionesEstadoAFD;
 
     //Lectura cuerdas.
-    private Boolean cuerdaAceptada;
 
     public AFN(String path){
         this.direccionAFN = path;
         this.transicionesLambdaAFN = new ArrayList<>();
         this.transicionesEstadosAFN = new ArrayList<>();
-        this.cuerdaAceptada = false;
 
         this.conjuntoCreadosPendientes = new LinkedList<>();
         this.mapaClausuras = new HashMap<>();
@@ -287,25 +284,32 @@ public class AFN{
 
 
     public static void main(String[] args) throws IOException {
-        if (args.length < 1) {
-            System.out.println("Uso: java AFN archivo.afn");
-            return;
-        }
+        if (args.length == 1) {
+            // Modo evaluación con AFN
+            AFN automata = new AFN(args[0]);
+            BufferedReader lector = new BufferedReader(new InputStreamReader(System.in));
+            System.out.println("Ingrese cuerdas (ENTER vacío para salir):");
     
-        // Crear instancia del AFN con el archivo recibido
-        AFN automata = new AFN(args[0]);
+            while (true) {
+                System.out.print("> ");
+                String linea = lector.readLine();
+                if (linea == null || linea.isEmpty()) break;
     
-        // Leer cuerdas desde consola
-        BufferedReader lector = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("Ingrese cuerdas (una por línea). ENTER vacío para salir:");
+                boolean aceptada = automata.accept(linea);
+                System.out.println(aceptada ? "ACEPTADA" : "RECHAZADA");
+            }
     
-        while (true) {
-            System.out.print("> ");
-            String linea = lector.readLine();
-            if (linea == null || linea.isEmpty()) break;
+        } else if (args.length == 3 && args[1].equals("-to-afd")) {
+            // Modo conversión AFN → AFD
+            AFN automata = new AFN(args[0]);
+            automata.toAFD(args[2]);
+            automata.escribirAFD("Prueba2","pruebas/afd");
+            System.out.println("AFD generado exitosamente en: " + args[2]);
     
-            boolean aceptada = automata.accept(linea);
-            System.out.println(aceptada ? "ACEPTADA" : "RECHAZADA");
+        } else {
+            System.out.println("Uso:");
+            System.out.println("  java AFN archivo.afn                 # Evaluar cuerdas");
+            System.out.println("  java AFN archivo.afn -to-afd salida.afd   # Convertir a AFD");
         }
     }
     
