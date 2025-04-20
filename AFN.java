@@ -15,10 +15,8 @@ public class AFN{
     private List<List<List<Integer>>> transicionesEstadosAFN;
 
     // Algoritmo de clausura-λ.
-    private Queue<Set<Integer>> conjuntoCreadosPendientes;          
-    private Queue<Set<Integer>> conjuntoCreadosProcesados;           
+    private Queue<Set<Integer>> conjuntoCreadosPendientes;                    
     private Map<Integer, Set<Integer>> mapaClausuras;
-    //private Map<Integer, ArrayList<Integer>> mapaAFD = new HashMap<>();
     private int contadorEstadosClausuras = 1;
 
     //Variables resultado AFD.
@@ -40,48 +38,37 @@ public class AFN{
         this.cuerdaAceptada = false;
 
         this.conjuntoCreadosPendientes = new LinkedList<>();
-        this.conjuntoCreadosProcesados = new LinkedList<>();
         this.mapaClausuras = new HashMap<>();
 
         this.estadosFinalAFD = new ArrayList<>();
-        this.transicionesEstadosAFD = new HashMap<>();
 
 
     }
 
     public boolean accept(String string) {
-        if (transicionesEstadoAFD == null || transicionesEstadoAFD.length == 0) {
-            System.err.println("Error: el AFD no ha sido construido. Ejecuta toAFD() primero.");
-            return false;
+        if(transicionesEstadoAFD == null || transicionesEstadoAFD.length != alfabeto.length){
+            toAFD("salida.afd");
         }
-    
-        int estadoActual = 1; // Estado inicial
-    
-        for (int i = 0; i < string.length(); i++) {
+        int estadoActual = 1;
+
+        for (int i=0; i<string.length(); i++){
             char simbolo = string.charAt(i);
             int idxSimbolo = getIndiceSimbolo(simbolo);
-    
-            if (idxSimbolo == -1) {
-                System.err.println("Símbolo '" + simbolo + "' no pertenece al alfabeto.");
-                return false;
-            }
-    
+            if(idxSimbolo == -1)return false; 
+
             boolean transicionEncontrada = false;
-            for (TransicionAFD t : transicionesEstadoAFD[idxSimbolo]) {
-                if (t.estadoOrigen == estadoActual) {
+            for(TransicionAFD t: transicionesEstadoAFD[idxSimbolo]){
+                if(t.estadoOrigen == estadoActual){
                     estadoActual = t.estadoDestino;
                     transicionEncontrada = true;
                     break;
                 }
             }
-    
-            if (!transicionEncontrada) {
-                estadoActual = 0; // estado de error
+            if(!transicionEncontrada){
+                estadoActual = 0;
                 break;
             }
         }
-    
-        // Evaluamos si el estado final es aceptado
         return estadosFinalAFD.contains(estadoActual);
     }
 
@@ -91,40 +78,34 @@ public class AFN{
         Set<Integer> estadoInicial = new HashSet<>();
         estadoInicial.add(1);
         clausura_lambda(estadoInicial);
-        
-        ArrayList<TransicionAFD>[] transicionesEstadoAFD = new ArrayList[alfabeto.length];
+        this.transicionesEstadoAFD = new ArrayList[alfabeto.length];
         for (int i = 0; i < alfabeto.length; i++) {
-            transicionesEstadoAFD[i] = new ArrayList<>();
+            this.transicionesEstadoAFD[i] = new ArrayList<>();
         }
-    
         while (!conjuntoCreadosPendientes.isEmpty()) {
-            Set<Integer> estadoActual = conjuntoCreadosPendientes.poll();
-            int nombreEstadoActual = obtenerEstado(estadoActual);
-    
+            //Obtengo conjunto estado clausura lambda
+            Set<Integer> cambioEstado = conjuntoCreadosPendientes.poll();
+            //Obtengo el nombre que se le puso a ese conjunto
+            int nombreEstadoOrigen = obtenerEstado(cambioEstado);
+
             for (int i = 0; i < alfabeto.length; i++) {
-                String caracter = alfabeto[i];
+                //Obtengo el caracter en el indice i del alfabeto
+                String caracterCambio = alfabeto[i];
+                //Creo el set para el conjunto que buscaremos
                 Set<Integer> conjuntoDestino = new HashSet<>();
-    
-                for (Integer estado : estadoActual) {
-                    if (i < transicionesEstadosAFN.get(estado).size()) {
-                        List<Integer> transiciones = transicionesEstadosAFN.get(estado).get(i);
-                        for (Integer siguiente : transiciones) {
-                            conjuntoDestino.add(siguiente);
-                        }
+                //Hago un for para iterar en cada estado individual del conjunto que se obtuvo de la fila de lambda
+                for (Integer estado : cambioEstado) {
+                    //CReo una lista con las transiciones de la matriz de ese estado.
+                    List<Integer> transiciones = transicionesEstadosAFN.get(i).get(estado);
+                    //Voy agregando cada transicion al conjunto destino
+                    for (Integer siguiente : transiciones) {
+                        conjuntoDestino.add(siguiente);
                     }
                 }
-    
+                //mando a "encolar" el conjunto destino y que tenga su nombre segun lambda
                 clausura_lambda(conjuntoDestino);
-    
-                // Redirige a estado de error si no hay transición
-                if (conjuntoDestino.isEmpty()) {
-                    TransicionAFD transicionError = new TransicionAFD(nombreEstadoActual, caracter, 0, false);
-                    transicionesEstadoAFD[i].add(transicionError);
-                    continue;
-                }
-    
                 Integer nombreEstadoDestino = obtenerEstado(conjuntoDestino);
-    
+                //verifico que sea estado final o no.
                 if (nombreEstadoDestino != null) {
                     boolean esEstadoFinal = false;
                     for (Integer estado : conjuntoDestino) {
@@ -133,19 +114,30 @@ public class AFN{
                             break;
                         }
                     }
-    
-                    TransicionAFD transicion = new TransicionAFD(nombreEstadoActual, caracter, nombreEstadoDestino, esEstadoFinal);
-                    transicionesEstadoAFD[i].add(transicion);
-    
+                    //creo el objeto
+                    TransicionAFD transicionCreada = new TransicionAFD(nombreEstadoOrigen, caracterCambio, nombreEstadoDestino, esEstadoFinal);
+                    //lo agrego a la matriz que tenemos para AFD
+                    transicionesEstadoAFD[i].add(transicionCreada);
+                    //agrego el estado si es final al conjunto de estados finales AFD
                     if (esEstadoFinal && !estadosFinalAFD.contains(nombreEstadoDestino)) {
                         estadosFinalAFD.add(nombreEstadoDestino);
                     }
                 }
+                
             }
         }
-    
-        Collections.sort(estadosFinalAFD); // Ordena antes de imprimir
-        escribirAFD(afdPath);
+        estadosFinales();
+        Collections.sort(estadosFinalAFD);
+
+    }
+
+    private int getIndiceSimbolo(char simbolo){
+        for(int i = 0; i<alfabeto.length; i++){
+            if(alfabeto[i].equals(String.valueOf(simbolo))){
+                return i;
+            }
+        }
+        return -1;
     }
     
 
@@ -208,13 +200,19 @@ public class AFN{
             }
         }
         Set<Integer> estadoNuevo = new HashSet<>(conjuntoNuevo);
-        boolean yaExiste = mapaClausuras.values().stream()
-        .anyMatch(lista -> new HashSet<>(lista).equals(estadoNuevo));
+        if (estadoNuevo.size() == 1 && estadoNuevo.contains(0)) {
+            if (!mapaClausuras.containsKey(0)) {
+                mapaClausuras.put(0, estadoNuevo);
+                conjuntoCreadosPendientes.add(estadoNuevo);
+            }
+        } else {
+            boolean yaExiste = mapaClausuras.values().stream().anyMatch(lista -> new HashSet<>(lista).equals(estadoNuevo));
 
-        if (!yaExiste) {
-            mapaClausuras.put(contadorEstadosClausuras, estadoNuevo);
-            contadorEstadosClausuras++;
-            conjuntoCreadosPendientes.add(estadoNuevo);
+            if (!yaExiste) {
+                mapaClausuras.put(contadorEstadosClausuras, estadoNuevo);
+                contadorEstadosClausuras++;
+                conjuntoCreadosPendientes.add(estadoNuevo);
+            }
         }
         
     }
@@ -227,73 +225,98 @@ public class AFN{
         }
         return null;
     }
-    
-    private int getIndiceSimbolo(char simbolo) {
-        for (int i = 0; i < alfabeto.length; i++) {
-            if (alfabeto[i].equals(String.valueOf(simbolo))) {
-                return i;
-            }
+        
+    public void escribirAFD(String nombreArchivo, String path) {
+        if (!nombreArchivo.endsWith(".afd")) {
+            nombreArchivo += ".afd";
         }
-        return -1;
-    }
     
-    
-    private void escribirAFD(String afdPath) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(afdPath))) {
+        File archivo = new File(path + File.separator + nombreArchivo);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(archivo))) {
             // Línea 1: alfabeto
             writer.write(String.join(",", alfabeto));
             writer.newLine();
     
-            // Línea 2: cantidad de estados del AFD (incluye el estado 0 como estado de error)
+            // Línea 2: cantidad de estados
             writer.write(String.valueOf(mapaClausuras.size()));
             writer.newLine();
     
-            // Línea 3: estados finales ordenados
-            List<Integer> finalesOrdenados = new ArrayList<>(estadosFinalAFD);
-            Collections.sort(finalesOrdenados);
-            for (int i = 0; i < finalesOrdenados.size(); i++) {
-                writer.write(finalesOrdenados.get(i).toString());
-                if (i < finalesOrdenados.size() - 1) {
+            // Línea 3: estados finales del AFD
+            for (int i = 0; i < estadosFinalAFD.size(); i++) {
+                writer.write(String.valueOf(estadosFinalAFD.get(i)));
+                if (i < estadosFinalAFD.size() - 1) {
                     writer.write(",");
                 }
             }
             writer.newLine();
     
-            // Transiciones (una fila por estado desde 1 hasta el número total)
-            for (int estado = 1; estado <= mapaClausuras.size(); estado++) {
-                List<String> fila = new ArrayList<>();
-                for (int i = 0; i < alfabeto.length; i++) {
-                    boolean agregado = false;
+            // Matriz de transiciones: filas = símbolos, columnas = estados
+            int maxEstado = mapaClausuras.keySet().stream().max(Integer::compareTo).orElse(0);
+            for (int i = 0; i < alfabeto.length; i++) {
+                StringBuilder fila = new StringBuilder();
+                for (int estado = 0; estado <= maxEstado; estado++) {
+                    boolean encontrado = false;
                     for (TransicionAFD t : transicionesEstadoAFD[i]) {
-                        if (t.estadoOrigen == estado) {
-                            fila.add(String.valueOf(t.estadoDestino));
-                            agregado = true;
+                        if (t.getEstadoOrigen() == estado) {
+                            fila.append(t.getEstadoDestino());
+                            encontrado = true;
                             break;
                         }
                     }
-                    if (!agregado) {
-                        fila.add("0"); // Estado de error
+                    if (!encontrado) {
+                        fila.append("");
+                    }
+                    if (estado < maxEstado) {
+                        fila.append(",");
                     }
                 }
-                writer.write(String.join(",", fila));
+                writer.write(fila.toString());
                 writer.newLine();
             }
+    
+            System.out.println("AFD exportado correctamente en: " + archivo.getAbsolutePath());
+    
         } catch (IOException e) {
-            System.err.println("Error al escribir el archivo AFD: " + afdPath);
+            System.err.println("Error al escribir AFD en archivo: " + e.getMessage());
         }
     }
     
     
+    
+    
 
 
-    public static void main(String[] args) {
-        String rutaAFN = "pruebas/afn/prueba1.afn";        // Ruta de entrada del archivo AFN
-        String rutaAFD = "pruebas/afd/prueba1.afd"; // Ruta donde se guardará el AFD
+    public static void main(String[] args) throws IOException{
+        if(args.length < 1){
+            System.out.println("Uso: java AFN archivo,afn");
+            return;
+        }
+
+        AFN automata = new AFN(args[0]); //CREAR INSTALCIA DEL AFN
+        BufferedReader lector = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Ingrese Cuerdas (una por linea) Enter vacio para salir: ");
+
+        while(true){
+            System.out.print("> ");
+            String linea = lector.readline();
+            if(linea == null || linea.isEmpty()) break;
+
+            boolean aceptada = automata.accept(linea);
+            System.out.println(aceptada ? "Aceptada" : "RECHAZADA");
+        }
+    }
     
-        AFN automata = new AFN(rutaAFN);
-        automata.toAFD(rutaAFD);
     
-        System.out.println("Conversión completada. AFD guardado en: " + rutaAFD);
+    private void estadosFinales() {
+        for (Map.Entry<Integer, Set<Integer>> entry : mapaClausuras.entrySet()) {
+            Set<Integer> conjunto = entry.getValue();
+            for (int finalAFN : estadosFinalAFN) {
+                if (conjunto.contains(finalAFN)) {
+                    estadosFinalAFD.add(entry.getKey());
+                    break;
+                }
+            }
+        }
     }
     
 
@@ -324,10 +347,5 @@ public class AFN{
         }
 
     }
+    
 }
-/*NOTAS:
- * Falta imprimir AFD
- * Algoritmo de conversion
- * main
- * accept cuerda
- */
