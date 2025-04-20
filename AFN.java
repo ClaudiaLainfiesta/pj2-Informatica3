@@ -286,25 +286,29 @@ public class AFN{
     
 
 
-    public static void main(String[] args) throws IOException{
-        if(args.length < 1){
-            System.out.println("Uso: java AFN archivo,afn");
+    public static void main(String[] args) throws IOException {
+        if (args.length < 1) {
+            System.out.println("Uso: java AFN archivo.afn");
             return;
         }
-
-        AFN automata = new AFN(args[0]); //CREAR INSTALCIA DEL AFN
+    
+        // Crear instancia del AFN con el archivo recibido
+        AFN automata = new AFN(args[0]);
+    
+        // Leer cuerdas desde consola
         BufferedReader lector = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("Ingrese Cuerdas (una por linea) Enter vacio para salir: ");
-
-        while(true){
+        System.out.println("Ingrese cuerdas (una por línea). ENTER vacío para salir:");
+    
+        while (true) {
             System.out.print("> ");
-            String linea = lector.readline();
-            if(linea == null || linea.isEmpty()) break;
-
+            String linea = lector.readLine();
+            if (linea == null || linea.isEmpty()) break;
+    
             boolean aceptada = automata.accept(linea);
-            System.out.println(aceptada ? "Aceptada" : "RECHAZADA");
+            System.out.println(aceptada ? "ACEPTADA" : "RECHAZADA");
         }
     }
+    
     
     
     private void estadosFinales() {
